@@ -9,12 +9,13 @@ def crc(quadro):
 
     tamanho = len(quadro)
 
-    # Calcula o resto
+    # Calcula o resto da divisao
     for i in range(tamanho):
+        # Pula se for 0
         if not copy[i]:
             continue
 
-        # XOR com o termo x^32
+        # XOR com o termo x^32, sempre vai ser 0
         copy[i] = 0
 
         # XOR com os demais termos
@@ -32,11 +33,9 @@ def crc_reverse(quadro):
 
     original_quadro = quadro[:-32]
 
-    
-
     tamanho = len(original_quadro)
 
-    # Calcula o resto
+    # Calcula o resto da divisao
     for i in range(tamanho):
         if not quadro[i]:
             continue
