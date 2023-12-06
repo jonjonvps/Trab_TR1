@@ -130,3 +130,4 @@ plt.xlabel('Amostras')
 plt.ylabel('Amplitude')
 plt.tight_layout()  # Ajusta automaticamente o layout para evitar sobreposição
 plt.show()
+
