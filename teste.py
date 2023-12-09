@@ -48,18 +48,26 @@ def nrz_polar_encoding(data):
 
 def manchester_encoding(data):
     encoded_data = []
+    list_data = [int(d) for d in data]
+    clock =  []
+    for _ in range(len(data)):
+        clock.extend([0,1])
 
-    for bit in data:
-        if bit == '0':
-            # Para bit 0, a transição ocorre de negativo para positivo
-            encoded_data.extend([-1, 1])
-        elif bit == '1':
-            # Para bit 1, a transição ocorre de positivo para negativo
-            encoded_data.extend([1, -1])
-        else:
-            raise ValueError("Os dados de entrada devem consistir apenas em 0s e 1s.")
+    for i in range(len(data)):
+        encoded_data.extend([list_data[i] ^ clock[2*i], list_data[i] ^ clock[2*i+1]])
 
     return encoded_data
+
+def manchester_dencoding(data):
+    dencoded_data = []
+    tamanho = len(data)/2
+    for i in range(int(tamanho)):
+        if data[2*i] == 1 and data[2*i+1] == 0:
+            dencoded_data.append(1)
+        else:
+            dencoded_data.append(0)
+
+    return dencoded_data
 
 def bipolar_encoding(data):
     encoded_data = []
@@ -77,6 +85,21 @@ def bipolar_encoding(data):
 
     return encoded_data
 
+def bipolar_dencoding(data):
+    dencoded_data = []
+    voltage_level = 1  
+    for bit in data:
+        if bit == 0:
+            # Para bit 0, a voltagem é zero
+            dencoded_data.append(0)
+        elif bit == 1 or bit == -1:
+            # Para bit 1, alternamos entre voltagens positivas e negativas
+            dencoded_data.append(voltage_level)
+        else:
+            raise ValueError("Os dados de entrada devem consistir apenas em 0s e 1s.")
+
+    return dencoded_data
+
 # Exemplo de uso
 data_bits = "01010011"
 nrz_polar_encoded = nrz_polar_encoding(data_bits)
@@ -88,9 +111,17 @@ manchester_encoded = manchester_encoding(data_bits)
 print("Dados originais:", data_bits)
 print("Codificação Manchester:", manchester_encoded)
 
+manchester_dencoded = manchester_dencoding(manchester_encoded)
+print("Dados originais:", data_bits)
+print("Decodificação Manchester:", manchester_dencoded)
+
 bipolar_encoded = bipolar_encoding(data_bits)
 print("Dados originais:", data_bits)
 print("Codificação Bipolar:", bipolar_encoded)
+
+bipolar_dencoded = bipolar_dencoding(bipolar_encoded)
+print("Dados originais:", data_bits)
+print("Decodificação Bipolar:", bipolar_dencoded)
 
 
 #-----------------------------------------------------------------------------
