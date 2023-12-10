@@ -79,7 +79,7 @@ def hamming_receptor(data):
 quadro = '1101001'
 data = hamming(quadro)
 print(data)
-data[2] = 1 - data[2]
+#data[2] = 1 - data[2]
 print(data)
 data = hamming_receptor(data)
 print(data)

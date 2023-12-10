@@ -1,7 +1,107 @@
 import socket
 import json
+import pickle
 
 class Aplicacao:
+    def bitToStr(self, binary_str):
+        chunks = [binary_str[i:i+8] for i in range(0, len(binary_str), 8)]
+
+        # Converta cada parte binária em um caractere
+        encoded_str = ''.join(chr(int(chunk, 2)) for chunk in chunks)
+        return encoded_str
+
+    def strTobit(self, text):
+        binary_str = ''.join(format(ord(i), '08b') for i in text)
+        return binary_str
+    
+    def srtBitToList(self, data):
+        list_data = [int(d) for d in data]
+        return list_data
+    
+    def listToStr(self, data):
+        strbits = ''.join(str(bit) for bit in data)
+        return strbits
+    
+    def socketsend(self, text, erro, Dencoded, BytesErro, Framing, bits):
+        HOST = 'localhost'
+        PORT = 20000
+        data= []
+        print("lista decode",Dencoded)
+        data.append(text), data.append(erro), data.append(Dencoded), data.append(BytesErro), data.append(Framing), data.append(bits)
+        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        try:
+            cliente.connect((HOST,PORT))
+            dados_a_enviar = json.dumps(data)
+            cliente.sendall(dados_a_enviar.encode('utf-8'))
+
+            menssage = cliente.recv(2048)
+
+            print('Mensagem Socket: ', menssage.decode())
+        finally:
+            cliente.close()
+
+
+    def aplicar(self,data):
+        data_original = data[:-3]
+        encoding, framing, error_detection = data[-3:]
+
+        listBytesDencoded = []
+        if encoding == 'NRZ Polar':
+            for quadro in data_original:
+                quadro_encode = CamadaFisica.nrz_polar_dencoding(quadro)
+                listBytesDencoded.append(quadro_encode)
+
+        elif encoding == 'Manchester':
+            for quadro in data_original:
+                quadro_encode = CamadaFisica.manchester_dencoding(quadro)
+                listBytesDencoded.append(quadro_encode)
+
+        else:
+            for quadro in data_original:
+                quadro_encode = CamadaFisica.bipolar_dencoding(quadro)
+                listBytesDencoded.append(quadro_encode)
+
+        decoder = []
+        decoder.extend(listBytesDencoded[0])
+        
+        listBytesErro = []
+        if error_detection == 'CRC':
+            for quadro in listBytesDencoded:
+                bitsErro, erro = CamadaEnlace.crc_reverse(quadro)
+                listBytesErro.append(bitsErro)
+        elif error_detection == 'Bits de Paridade':
+            for quadro in listBytesDencoded:
+                bitsErro, erro = CamadaEnlace.BitParidadeReverse(quadro)
+                listBytesErro.append(bitsErro)
+        else:
+            for quadro in listBytesDencoded:
+                bitsErro, erro = CamadaEnlace.hamming_receptor(quadro)
+                listBytesErro.append(bitsErro)
+
+        print("lista de erros: ",listBytesErro)
+        listFramig = []
+        for quadro in listBytesErro:
+            str_bin = self.listToStr(quadro)
+            listFramig.append(str_bin)
+
+        if framing == 'Inserção de Byte':
+            bits = CamadaEnlace.reverse_byte(listFramig)
+        else:
+            bits = CamadaEnlace.frame_decapsulation(listFramig)
+
+        text = self.bitToStr(bits)
+        if erro == 1:
+            msg = 'Apresentou erro!'
+        else:
+            msg = 'Não apresentou erro'
+
+        
+        print("lista decode: ",decoder)
+        BytesErro = listBytesErro[0]
+        Framing = listFramig[0]
+        self.socketsend(text, msg, decoder, BytesErro, Framing , bits)
+
     def socketRecive(self):
         HOST = 'localhost'
         PORT = 50000
@@ -16,16 +116,20 @@ class Aplicacao:
         conn, ender = servidor.accept()
 
         print('Conectando em:', ender)
+        try:
+            while True:
+                dados_recebidos = conn.recv(2048)
+                if not dados_recebidos:
+                    print('Fechando conexão')
+                    conn.close()
+                    break
+                lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
+                print("Lista recebida:", lista_recebida)
+                conn.sendall(str.encode('recebido'))
+                self.aplicar(lista_recebida)
 
-        while True:
-            dados_recebidos = conn.recv(2048)
-            if not dados_recebidos:
-                print('Fechando a conexão')
-                conn.close()
-                break
-            lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
-            print("Lista recebida:", lista_recebida)
-            conn.sendall(str.encode('recebido'))
+        finally:
+            conn.close()
 
 
 
@@ -158,8 +262,13 @@ class CamadaEnlace:
             for j in range(32):
                 if gx & (1 << j):
                     quadro[i + 32 - j] = 1 - quadro[i + 32 - j]
-        
-        return original_quadro, quadro[tamanho:]
+        crc = quadro[tamanho:]
+        if 1 in crc:
+            msg = 1
+        else:
+            msg = 0
+
+        return original_quadro, msg
 
     def hamming_receptor(data):
 
@@ -202,7 +311,7 @@ class CamadaEnlace:
             else:     
                 data_original.append(data[i])
 
-        return data_original
+        return data_original, erro
     
 teste = Aplicacao()
 teste.socketRecive()

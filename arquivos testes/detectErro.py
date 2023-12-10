@@ -24,7 +24,7 @@ data = [0,1,1,1,1,0]
 
 block = BitParidade(data)
 print(block)
-block[3] = 1 - block[3]
+#block[3] = 1 - block[3]
 data_original, flag = BitParidadeReverse(data)
 if(flag):
     print("Detectou erro: ", data_original)

@@ -2,6 +2,13 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
+import socket
+import json
+import pickle
+
+import numpy as np
+import matplotlib.pyplot as plt
+
 import Transmissor
 
 class MyWindow(Gtk.Window):
@@ -93,6 +100,66 @@ class MyWindow(Gtk.Window):
                         return container.get_children()[i].get_label()
         return None
 
+    def data_received(self,data):
+        msg = f"\n\nReceptora\n\nDecodificação: {data[2]}\nDetecção de erro: {data[1]} {data[3]}\nEnquadramento: {data[4]}\nTexto em Binario: {data[5]}\nMensagem: {data[0]}"
+        return msg
+    
+    def socketRecived(self):
+        HOST = 'localhost'
+        PORT = 20000
+
+        servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        servidor.bind((HOST, PORT))
+
+        servidor.listen()
+
+        print("Aguardando conexão de um cliente")
+        conn, ender = servidor.accept()
+
+        print('Conectando em:', ender)
+        try:
+            while True:
+                dados_recebidos = conn.recv(2048)
+                if not dados_recebidos:
+                    print('Fechando conexão')
+                    conn.close()
+                    break
+                lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
+                print("Lista recebida GTK:", lista_recebida)
+                conn.sendall(str.encode('recebido'))
+                msg = self.data_received(lista_recebida)
+
+        finally:
+            conn.close()
+
+        return msg, lista_recebida
+
+    def plotgrafics(self,Encoded,modulacaoASK, modulacaoFSK, encoding):
+        plt.xaxis = np.arange(0, len(Encoded))
+        plt.yaxis = np.array(Encoded)
+        plt.step(plt.xaxis, plt.yaxis)
+        plt.title(f'Sinal {encoding}')
+        plt.show()
+      
+        if modulacaoASK:
+            plt.plot(modulacaoASK[0], label='Sinal de ASK')
+            plt.title('Sinal ASK')
+
+            plt.xlabel('Amostras')
+            plt.ylabel('Amplitude')
+            plt.tight_layout()  # Ajusta automaticamente o layout para evitar sobreposição
+            plt.show()
+        if modulacaoFSK:
+            plt.plot(modulacaoFSK[0], label='Sinal de FSK')
+            plt.title('Sinal FSK')
+
+            plt.xlabel('Amostras')
+            plt.ylabel('Amplitude')
+            plt.tight_layout()  # Ajusta automaticamente o layout para evitar sobreposição
+            plt.show()
+
+
     def perform_operations(self, text_input, encoding, framing, error_detection, ask_selected, fsk_selected):
         # Implementar a lógica aqui usando as opções fornecidas e as classes
         # Chamar as funções apropriadas das classes CamadaFisica e CamadaEnlace
@@ -104,9 +171,14 @@ class MyWindow(Gtk.Window):
 
 
         trasnmissor = Transmissor.Aplicacao()
-        bin_str, quadro, BytesErro, BytesEncoded = trasnmissor.aplicar(text_input, encoding, framing, error_detection, modulation_result)
+        bin_str, quadro, BytesErro, BytesEncoded, modulacaoASK, modulacaoFSK = trasnmissor.aplicar(text_input, encoding, framing, error_detection, modulation_result)
         result = f"Texto: {bin_str}\nEnquadramento: {quadro}\nDetecção de Erro: {BytesErro}\nCodificação: {BytesEncoded}"
-        return result
+    
+        msg, listReceptora = self.socketRecived()
+
+        self.plotgrafics(BytesEncoded, listReceptora[2], modulacaoASK, modulacaoFSK,encoding)
+
+        return result + msg
 
 win = MyWindow()
 win.connect("destroy", Gtk.main_quit)

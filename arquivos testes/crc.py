@@ -32,6 +32,7 @@ def crc_reverse(quadro):
     gx = 0x04C11DB7
 
     original_quadro = quadro[:-32]
+    print("original: ", original_quadro)
 
     tamanho = len(original_quadro)
 
@@ -67,8 +68,7 @@ print("Quadro com CRC: ", quadro)
 
 quadro_original, resultado_crc = crc_reverse(quadro)
 print("Resultado do CRC: ",resultado_crc)
-quadro_str = listToStr(quadro_original)
-print("Quadro original: ", quadro_str)
+print("Quadro original: ", quadro_original)
 
 if 1 in resultado_crc:
     print("apresentou erro")

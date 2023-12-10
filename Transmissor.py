@@ -1,6 +1,7 @@
 import numpy as np
 import socket
 import json
+import pickle
 
 class Aplicacao:
     def strTobit(self, text):
@@ -16,19 +17,22 @@ class Aplicacao:
         return strbits
     
 
-    def socketsend(self, data):
+    def socketsend(self, data, encoding, framing, error_detection):
         HOST = 'localhost'
         PORT = 50000
-
+        data.extend((encoding,framing,error_detection))
         cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        cliente.connect((HOST,PORT))
-        dados_a_enviar = json.dumps(data)
-        cliente.sendall(dados_a_enviar.encode('utf-8'))
 
-        menssage = cliente.recv(2048)
+        try:
+            cliente.connect((HOST,PORT))
+            dados_a_enviar = json.dumps(data)
+            cliente.sendall(dados_a_enviar.encode('utf-8'))
 
-        print('Mensagem Socket: ', menssage.decode())
+            menssage = cliente.recv(2048)
 
+            print('Mensagem Socket: ', menssage.decode())
+        finally:
+            cliente.close()
 
     
     def aplicar(self, text_input, encoding, framing, error_detection, modulation_str):
@@ -39,12 +43,14 @@ class Aplicacao:
         else:
             quadros = CamadaEnlace.frame_encapsulation(bin_str)
 
+        print("quadros: ", quadros)
         listBytesErro = []
         if error_detection == 'CRC':
             for quadro in quadros:
                 lista = self.srtBitToList(quadro)
                 bitsErro = CamadaEnlace.crc(lista)
-                listBytesErro.append(bitsErro)
+                lista.extend(bitsErro)
+                listBytesErro.append(lista)
         elif error_detection == 'Bits de Paridade':
             for quadro in quadros:
                 lista = self.srtBitToList(quadro)
@@ -56,6 +62,7 @@ class Aplicacao:
                 bitsErro = CamadaEnlace.hamming(lista)
                 listBytesErro.append(bitsErro)
 
+        print("Lista de erros: ", listBytesErro)
         listBytesEncoded = []
         if encoding == 'NRZ Polar':
             for quadro in listBytesErro:
@@ -80,19 +87,20 @@ class Aplicacao:
         A_amplitude = 1
         f_frequencia = 1
         f2_frequencia = 2
-        listModulacao = []
+        ModulacaoASK = []
+        ModulacaoFSK = []
         if 'Modulação ASK' in modulation_str:
             for quadro in listBytesEncoded:
                 modulo = CamadaFisica.ask(A_amplitude,f_frequencia,quadro)
-                listModulacao.append(modulo)
-        else:
+                ModulacaoASK.append(modulo)
+        if 'Modulação FSK' in modulation_str:
             for quadro in listBytesEncoded:
                 modulo = CamadaFisica.fsk(A_amplitude,f_frequencia,f2_frequencia,quadro)
-                listModulacao.append(modulo)
+                ModulacaoFSK.append(modulo)
 
-        self.socketsend(listBytesEncoded)
+        self.socketsend(listBytesEncoded, encoding, framing, error_detection)
         
-        return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0]
+        return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0], ModulacaoASK, ModulacaoFSK
         
 class CamadaFisica:
     def nrz_polar_encoding(data):
@@ -246,7 +254,8 @@ class CamadaEnlace:
                     copy[i + 32 - j] = 1 - copy[i + 32 - j]
 
         # O código CRC (remainder) é retornado
-        return copy
+        
+        return copy[tamanho:]
     
     def hamming(data):
         list_data = [int(d) for d in data]
