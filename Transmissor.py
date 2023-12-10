@@ -54,24 +54,6 @@ class Aplicacao:
         print('data $$$$$$$$$$$: ',data[0])
         return data
 
-    def socketsend(self, data, encoding, framing, error_detection):
-        HOST = 'localhost'
-        PORT = 50000
-        # Monta o pacote de dados para enviar
-        data.extend((encoding, framing, error_detection))
-        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        try:
-            cliente.connect((HOST,PORT))
-            dados_a_enviar = json.dumps(data)
-            cliente.sendall(dados_a_enviar.encode('utf-8'))
-
-            menssage = cliente.recv(2048)
-
-            print('Mensagem Socket: ', menssage.decode())
-        finally:
-            cliente.close()
-
     
     def aplicar(self, text_input, encoding, framing, error_detection, modulation_str, erro_selected):
         bin_str = self.strTobit(text_input)
@@ -145,9 +127,11 @@ class Aplicacao:
         if erro_selected:
             listBytesEncoded = self.AddError(listBytesEncoded,error_detection,encoding)
 
-        self.socketsend(listBytesEncoded, encoding, framing, error_detection)
+        #self.socketsend(listBytesEncoded, encoding, framing, error_detection)
         
-        return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0], ModulacaoASK, ModulacaoFSK
+        return bin_str, quadros[0], listBytesErro[0], listBytesEncoded, ModulacaoASK, ModulacaoFSK
+    
+    
         
 
 # Simulador da camada fisica para o transmissor.

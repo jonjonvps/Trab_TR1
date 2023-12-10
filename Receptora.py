@@ -36,28 +36,9 @@ class Aplicacao:
     def listToStr(self, data):
         strbits = ''.join(str(bit) for bit in data)
         return strbits
-    
-    def socketsend(self, text, erro, Dencoded, BytesErro, Framing, bits):
-        HOST = 'localhost'
-        PORT = 20000
-        data= []
-        print("lista decode", Dencoded)
-        data.append(text), data.append(erro), data.append(Dencoded), data.append(BytesErro), data.append(Framing), data.append(bits)
-        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        try:
-            cliente.connect((HOST,PORT))
-            dados_a_enviar = json.dumps(data)
-            cliente.sendall(dados_a_enviar.encode('utf-8'))
-
-            menssage = cliente.recv(2048)
-
-            print('Mensagem Socket: ', menssage.decode())
-        finally:
-            cliente.close()
 
 
-    def aplicar(self,data):
+    def aplicar(self, data):
         data_original = data[:-3]
         encoding, framing, error_detection = data[-3:]
 
@@ -85,17 +66,20 @@ class Aplicacao:
         if error_detection == 'CRC':
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.crc_reverse(quadro)
-                listBytesErro.append(bitsErro), listErro.append(erro)
+                listBytesErro.append(bitsErro)
+                listErro.append(erro)
         elif error_detection == 'Bits de Paridade':
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.BitParidadeReverse(quadro)
-                listBytesErro.append(bitsErro), listErro.append(erro)
+                listBytesErro.append(bitsErro)
+                listErro.append(erro)
         else:
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.hamming_receptor(quadro)
-                listBytesErro.append(bitsErro), listErro.append(erro)
+                listBytesErro.append(bitsErro)
+                listErro.append(erro)
 
-        print("lista de erros: ",listBytesErro)
+        print("lista de erros: ", listBytesErro)
         listFramig = []
         for quadro in listBytesErro:
             str_bin = self.listToStr(quadro)
@@ -108,47 +92,19 @@ class Aplicacao:
             if erro == 1:
                 listErro = [1]
 
-        
         text = self.bitToStr(bits)
         if 0 != listErro[0]:
             msg = 'Apresentou erro!'
         else:
             msg = 'Não apresentou erro'
 
-        
-        print("lista decode: ",decoder)
+            
+        print("lista decode: ", decoder)
         BytesErro = listBytesErro[0]
         Framing = listFramig[0]
-        self.socketsend(text, msg, decoder, BytesErro, Framing , bits)
 
-    def socketReceive(self):
-        HOST = 'localhost'
-        PORT = 50000
+        return text, msg, decoder, BytesErro, Framing, bits
 
-        servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        servidor.bind((HOST, PORT))
-
-        servidor.listen()
-
-        print("Aguardando conexão de um cliente")
-        conn, ender = servidor.accept()
-
-        print('Conectando em:', ender)
-        try:
-            while True:
-                dados_recebidos = conn.recv(2048)
-                if not dados_recebidos:
-                    print('Fechando conexão')
-                    conn.close() 
-                    break
-                lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
-                print("Lista recebida:", lista_recebida)
-                conn.sendall(str.encode('recebido'))
-                self.aplicar(lista_recebida)
-
-        finally:
-            conn.close()
 
 
 # Simulador da camada fisica para o receptor.
@@ -256,6 +212,7 @@ class CamadaEnlace:
             # Verifica se o comprimento do frame é consistente com o comprimento real dos dados
             if length != len(frame_data):
                 erro = 1
+                #raise ValueError("Comprimento do quadro inconsistente com os dados reais")
 
             binary_data += frame_data
 
@@ -269,7 +226,6 @@ class CamadaEnlace:
             EDC ^= bit 
 
         data.pop()
-        print("EDC: ", EDC)
         if(EDC):
             return data, 1
         else:
@@ -348,5 +304,3 @@ class CamadaEnlace:
 
         return data_original, erro
     
-teste = Aplicacao()
-teste.socketReceive()
