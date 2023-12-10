@@ -13,7 +13,6 @@ def insercao_byte(binary_data):
             if cont == 5:
                 frame_checado += '0'
                 cont = 0
-                print("passou")
             
             if bit == '1': 
                 cont += 1 
@@ -35,7 +34,6 @@ def reverse_byte(frames):
 
         #length_bin = frame[:8]
         frame_data = frame[8:]
-        print(frame_data)
         flag = 0
         cont = 0
         frame_descompactado = ''
@@ -63,6 +61,7 @@ def reverse_byte(frames):
 def frame_encapsulation(data):
     binary_data = ''.join(format(ord(char), '08b') for char in data)
     # list_bits = [int(d) for d in binary_data]
+    print('Binara data: ',binary_data)
     frames = [binary_data[i:i+32] for i in range(0, len(binary_data), 32)]
 
     encapsulated_frames = []

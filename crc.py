@@ -50,6 +50,11 @@ def crc_reverse(quadro):
     
     return original_quadro, quadro[tamanho:]
 
+def listToStr(data):
+    strbits = ''.join(str(bit) for bit in data)
+    return strbits
+
+
 # Exemplo de uso:
 quadro = [1, 0, 1, 1, 0, 0, 1, 0, 0, 1]  # Substitua pelos seus dados
 resultado_crc = crc(quadro)
@@ -62,7 +67,9 @@ print("Quadro com CRC: ", quadro)
 
 quadro_original, resultado_crc = crc_reverse(quadro)
 print("Resultado do CRC: ",resultado_crc)
-print("Quadro original: ", quadro_original)
+quadro_str = listToStr(quadro_original)
+print("Quadro original: ", quadro_str)
+
 if 1 in resultado_crc:
     print("apresentou erro")
 else:

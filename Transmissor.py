@@ -1,16 +1,101 @@
+import numpy as np
+import socket
+import json
+
 class Aplicacao:
-    def strTobit(text):
+    def strTobit(self, text):
         binary_str = ''.join(format(ord(i), '08b') for i in text)
         return binary_str
     
-    def srtBitToList(data):
+    def srtBitToList(self, data):
         list_data = [int(d) for d in data]
         return list_data
     
-    def listToStr(data):
-        strbits = ''.join(data)
+    def listToStr(self, data):
+        strbits = ''.join(str(bit) for bit in data)
         return strbits
     
+
+    def socketsend(self, data):
+        servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        endereco_servidor = ('localhost', 12345)  # Escolha um número de porta adequado
+        servidor.bind(endereco_servidor)
+        servidor.listen()
+
+        print("Aguardando conexão...")
+        conexao, endereco_cliente = servidor.accept()
+
+        # Enviar dados para o Receptor
+        dados_a_enviar = json.dumps(data)
+        conexao.sendall(dados_a_enviar.encode('utf-8'))
+
+        # Encerrar conexão
+        conexao.close()
+
+    
+    def aplicar(self, text_input, encoding, framing, error_detection, modulation_str):
+        bin_str = self.strTobit(text_input)
+
+        if framing == 'Inserção de Byte':
+            quadros = CamadaEnlace.insercao_byte(bin_str)
+        else:
+            quadros = CamadaEnlace.frame_encapsulation(bin_str)
+
+        listBytesErro = []
+        if error_detection == 'CRC':
+            for quadro in quadros:
+                lista = self.srtBitToList(quadro)
+                bitsErro = CamadaEnlace.crc(lista)
+                listBytesErro.append(bitsErro)
+        elif error_detection == 'Bits de Paridade':
+            for quadro in quadros:
+                lista = self.srtBitToList(quadro)
+                bitsErro = CamadaEnlace.BitParidade(lista)
+                listBytesErro.append(bitsErro)
+        else:
+            for quadro in quadros:
+                lista = self.srtBitToList(quadro)
+                bitsErro = CamadaEnlace.hamming(lista)
+                listBytesErro.append(bitsErro)
+
+        listBytesEncoded = []
+        if encoding == 'NRZ Polar':
+            for quadro in listBytesErro:
+                print(quadro)
+                quadro_str = self.listToStr(quadro)
+                quadro_encode = CamadaFisica.nrz_polar_encoding(quadro_str)
+                listBytesEncoded.append(quadro_encode)
+
+        elif encoding == 'Manchester':
+            for quadro in listBytesErro:
+                quadro_str = self.listToStr(quadro)
+                quadro_encode = CamadaFisica.manchester_encoding(quadro_str)
+                listBytesEncoded.append(quadro_encode)
+
+        else:
+            for quadro in listBytesErro:
+                quadro_str = self.listToStr(quadro)
+                quadro_encode = CamadaFisica.bipolar_encoding(quadro_str)
+                listBytesEncoded.append(quadro_encode)
+
+
+        A_amplitude = 1
+        f_frequencia = 1
+        f2_frequencia = 2
+        listModulacao = []
+        if 'Modulação ASK' in modulation_str:
+            for quadro in listBytesEncoded:
+                modulo = CamadaFisica.ask(A_amplitude,f_frequencia,quadro)
+                listModulacao.append(modulo)
+        else:
+            for quadro in listBytesEncoded:
+                modulo = CamadaFisica.fsk(A_amplitude,f_frequencia,f2_frequencia,quadro)
+                listModulacao.append(modulo)
+
+        
+        
+        return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0]
+        
 class CamadaFisica:
     def nrz_polar_encoding(data):
         encoded_data = []
@@ -55,6 +140,36 @@ class CamadaFisica:
 
         return encoded_data
     
+    def ask(A, f, bit_stream):
+        sig_size = len(bit_stream)
+        signal = np.zeros(sig_size * 100)
+
+        for i in range(sig_size):
+            if bit_stream[i] == 1:
+                for j in range(100):
+                    signal[i * 100 + j] = A * np.sin(2 * np.pi * f * j / 100)
+            else:
+                for j in range(100):
+                    signal[i * 100 + j] = 0
+
+        return signal
+
+
+    def fsk(A, f1, f2, bit_stream):
+        sig_size = len(bit_stream)
+        signal = np.zeros(sig_size * 100)
+
+        for i in range(sig_size):
+            if bit_stream[i] == 1:
+                for j in range(100):
+                    signal[i * 100 + j] = A * np.sin(2 * np.pi * f2 * j / 100)
+            else:
+                for j in range(100):
+                    signal[i * 100 + j] = A * np.sin(2 * np.pi * f1 * j / 100)
+
+        return signal
+
+    
 class CamadaEnlace:
     def insercao_byte(binary_data):
         bits_especial = '01111110'
@@ -85,9 +200,9 @@ class CamadaEnlace:
         return encapsulated_frames
 
     def frame_encapsulation(data):
-        binary_data = ''.join(format(ord(char), '08b') for char in data)
+        # binary_data = ''.join(format(ord(char), '08b') for char in data)
         # list_bits = [int(d) for d in binary_data]
-        frames = [binary_data[i:i+32] for i in range(0, len(binary_data), 32)]
+        frames = [data[i:i+32] for i in range(0, len(data), 32)]
 
         encapsulated_frames = []
         for frame in frames:
@@ -133,7 +248,7 @@ class CamadaEnlace:
                     copy[i + 32 - j] = 1 - copy[i + 32 - j]
 
         # O código CRC (remainder) é retornado
-        return copy[tamanho:]
+        return copy
     
     def hamming(data):
         list_data = [int(d) for d in data]

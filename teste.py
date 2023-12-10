@@ -45,6 +45,19 @@ def nrz_polar_encoding(data):
 
     return encoded_data
 
+def nrz_polar_dencoding(data):
+    encoded_data = []
+
+    for bit in data:
+        if bit == -1:
+            encoded_data.append(0)  # Mudança de polaridade para bit 0
+        elif bit == 1:
+            encoded_data.append(1)  # Nenhuma mudança de polaridade para bit 1
+        else:
+            raise ValueError("Os dados de entrada devem consistir apenas em 0s e 1s.")
+
+    return encoded_data
+
 
 def manchester_encoding(data):
     encoded_data = []
@@ -105,6 +118,10 @@ data_bits = "01010011"
 nrz_polar_encoded = nrz_polar_encoding(data_bits)
 print("Dados originais:", data_bits)
 print("Codificação NRZ-Polar:", nrz_polar_encoded)
+
+nrz_polar_dencoded = nrz_polar_dencoding(nrz_polar_encoded)
+print("Dados originais:", data_bits)
+print("Decodificação NRZ-Polar:", nrz_polar_dencoded)
 
 
 manchester_encoded = manchester_encoding(data_bits)
