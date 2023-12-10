@@ -1,3 +1,13 @@
+# Universidade de Brasilia
+# Departamento de Ciencia da Computacao
+# Disciplina de Teleinformatica e Redes 1
+# Professor Marcelo Antonio Marotta
+# Trabalho final da disciplina
+# Alunos :  Andre Cassio Barros de Souza    160111943
+#           Andrey Galvao Mendes            180097911
+#           Davi Oliveira Fuzo              202024446
+#           Joao Victor Pinheiro de Souza   180103407
+
 import numpy as np
 import socket
 import json
@@ -5,14 +15,18 @@ import pickle
 import random
 
 class Aplicacao:
+
+    # Transforma a string passada para o formato binario
     def strTobit(self, text):
         binary_str = ''.join(format(ord(i), '08b') for i in text)
         return binary_str
     
+    # Transforma a string de bits passada para o formato lista
     def srtBitToList(self, data):
         list_data = [int(d) for d in data]
         return list_data
     
+    # Concatena todos os elementos da lista para uma string
     def listToStr(self, data):
         strbits = ''.join(str(bit) for bit in data)
         return strbits
@@ -43,7 +57,8 @@ class Aplicacao:
     def socketsend(self, data, encoding, framing, error_detection):
         HOST = 'localhost'
         PORT = 50000
-        data.extend((encoding,framing,error_detection))
+        # Monta o pacote de dados para enviar
+        data.extend((encoding, framing, error_detection))
         cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
@@ -61,12 +76,15 @@ class Aplicacao:
     def aplicar(self, text_input, encoding, framing, error_detection, modulation_str, erro_selected):
         bin_str = self.strTobit(text_input)
 
+        # Montagem dos quadros
         if framing == 'Inserção de Byte':
             quadros = CamadaEnlace.insercao_byte(bin_str)
         else:
             quadros = CamadaEnlace.frame_encapsulation(bin_str)
 
         print("quadros: ", quadros)
+
+        # Montagem da lista de erros
         listBytesErro = []
         if error_detection == 'CRC':
             for quadro in quadros:
@@ -86,6 +104,8 @@ class Aplicacao:
                 listBytesErro.append(bitsErro)
 
         print("Lista de erros: ", listBytesErro)
+
+        # Montagem da lista de codificacao
         listBytesEncoded = []
         if encoding == 'NRZ Polar':
             for quadro in listBytesErro:
@@ -107,6 +127,7 @@ class Aplicacao:
                 listBytesEncoded.append(quadro_encode)
 
 
+        # Montagem da modulacao
         A_amplitude = 1
         f_frequencia = 1
         f2_frequencia = 2
@@ -128,7 +149,13 @@ class Aplicacao:
         
         return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0], ModulacaoASK, ModulacaoFSK
         
+
+# Simulador da camada fisica para o transmissor.
+# Possui metodos para codificacao de dados nos padroes NRZ Polar, Manchester e Bipolar.
+# Possui metodos para modulacao de dados nos padroes ASK e FSK
 class CamadaFisica:
+
+    # Codificacao NRZ Polar
     def nrz_polar_encoding(data):
         encoded_data = []
         previous_level = 1  # Começamos com um nível positivo
@@ -143,7 +170,7 @@ class CamadaFisica:
 
         return encoded_data
 
-
+    # Codificacao Manchester
     def manchester_encoding(data):
         encoded_data = []
         list_data = [int(d) for d in data]
@@ -156,6 +183,7 @@ class CamadaFisica:
 
         return encoded_data
 
+    # Codificacao Bipolar
     def bipolar_encoding(data):
         encoded_data = []
         voltage_level = 1  
@@ -172,6 +200,7 @@ class CamadaFisica:
 
         return encoded_data
     
+    # Modularizacao ASK
     def ask(A, f, bit_stream):
         sig_size = len(bit_stream)
         signal = np.zeros(sig_size * 100)
@@ -186,7 +215,7 @@ class CamadaFisica:
 
         return signal
 
-
+    # Modularizacao FSK
     def fsk(A, f1, f2, bit_stream):
         sig_size = len(bit_stream)
         signal = np.zeros(sig_size * 100)
@@ -201,8 +230,13 @@ class CamadaFisica:
 
         return signal
 
-    
+
+# Simulador da camada de enlace para o transmissor.
+# Possui metodos para enquadramento nos padroes de Insercao de Byte e de Contagem de caracteres.
+# Possui metodos para deteccao de erros nos padroes Hamming, Bits de paridade e CRC.
 class CamadaEnlace:
+
+    # Enquadramento por insercao de bytes
     def insercao_byte(binary_data):
         bits_especial = '01111110'
 
@@ -231,6 +265,7 @@ class CamadaEnlace:
 
         return encapsulated_frames
 
+    # Enquadramento por contagem de caracteres
     def frame_encapsulation(data):
         # binary_data = ''.join(format(ord(char), '08b') for char in data)
         # list_bits = [int(d) for d in binary_data]
@@ -245,6 +280,7 @@ class CamadaEnlace:
 
         return encapsulated_frames
 
+    # Deteccao de erros por bit de paridade
     def BitParidade(data):
         EDC = 0
 
@@ -254,6 +290,7 @@ class CamadaEnlace:
         data.append(EDC)
         return data
     
+    # Deteccao de erros por CRC
     def crc(quadro):
         # Polinômio gerador CRC32-IEEE
         g = 0x04C11DB7
@@ -283,6 +320,7 @@ class CamadaEnlace:
         
         return copy[tamanho:]
     
+    # Deteccao de erros por Hamming
     def hamming(data):
         list_data = [int(d) for d in data]
         tamanho = len(list_data)

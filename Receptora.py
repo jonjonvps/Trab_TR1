@@ -1,8 +1,20 @@
+# Universidade de Brasilia
+# Departamento de Ciencia da Computacao
+# Disciplina de Teleinformatica e Redes 1
+# Professor Marcelo Antonio Marotta
+# Trabalho final da disciplina
+# Alunos :  Andre Cassio Barros de Souza    160111943
+#           Andrey Galvao Mendes            180097911
+#           Davi Oliveira Fuzo              202024446
+#           Joao Victor Pinheiro de Souza   180103407
+
 import socket
 import json
 import pickle
 
 class Aplicacao:
+
+    # Transforma os bits recebidos para string
     def bitToStr(self, binary_str):
         chunks = [binary_str[i:i+8] for i in range(0, len(binary_str), 8)]
 
@@ -10,14 +22,17 @@ class Aplicacao:
         encoded_str = ''.join(chr(int(chunk, 2)) for chunk in chunks)
         return encoded_str
 
+    # Transforma a string passada para o formato binario
     def strTobit(self, text):
         binary_str = ''.join(format(ord(i), '08b') for i in text)
         return binary_str
     
+    # Transforma a string de bits passada para o formato lista
     def srtBitToList(self, data):
         list_data = [int(d) for d in data]
         return list_data
     
+    # Concatena todos os elementos da lista para uma string
     def listToStr(self, data):
         strbits = ''.join(str(bit) for bit in data)
         return strbits
@@ -26,7 +41,7 @@ class Aplicacao:
         HOST = 'localhost'
         PORT = 20000
         data= []
-        print("lista decode",Dencoded)
+        print("lista decode", Dencoded)
         data.append(text), data.append(erro), data.append(Dencoded), data.append(BytesErro), data.append(Framing), data.append(bits)
         cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -106,7 +121,7 @@ class Aplicacao:
         Framing = listFramig[0]
         self.socketsend(text, msg, decoder, BytesErro, Framing , bits)
 
-    def socketRecive(self):
+    def socketReceive(self):
         HOST = 'localhost'
         PORT = 50000
 
@@ -136,8 +151,11 @@ class Aplicacao:
             conn.close()
 
 
-
+# Simulador da camada fisica para o receptor.
+# Possui metodos para decodificacao de dados nos padroes NRZ Polar, Manchester e Bipolar.
 class CamadaFisica:
+
+    # Decodificacao NRZ Polar
     def nrz_polar_dencoding(data):
         encoded_data = []
 
@@ -151,6 +169,7 @@ class CamadaFisica:
 
         return encoded_data
     
+    # Decodificacao Manchester
     def manchester_dencoding(data):
         dencoded_data = []
         tamanho = len(data)/2
@@ -162,6 +181,7 @@ class CamadaFisica:
 
         return dencoded_data
 
+    # Decodificacao Bipolar
     def bipolar_dencoding(data):
         dencoded_data = []
         voltage_level = 1  
@@ -176,9 +196,14 @@ class CamadaFisica:
                 raise ValueError("Os dados de entrada devem consistir apenas em 0s e 1s.")
 
         return dencoded_data
-    
+
+
+# Simulador da camada de enlace para o receptor.
+# Possui metodos para desenquadrar um quadro recebido nos padroes de Insercao de Byte e de Contagem de caracteres.
+# Possui metodos para deteccao de erros nos padroes Hamming, Bits de paridade e CRC.
 class CamadaEnlace:
 
+    # Desenquadramento por padrao Insercao de Byte
     def reverse_byte(frames):
         binary_data = ''
         for frame in frames:
@@ -212,6 +237,8 @@ class CamadaEnlace:
             binary_data += frame_descompactado 
         return binary_data
 
+
+    # Desenquadramento por padrao Contagem de caracteres
     def frame_decapsulation(frames):
         binary_data = ''
         erro = 0
@@ -234,6 +261,7 @@ class CamadaEnlace:
 
         return binary_data, erro
 
+    # Deteccao de erros por bit de paridade
     def BitParidadeReverse(data):
         EDC = 0
 
@@ -247,7 +275,7 @@ class CamadaEnlace:
         else:
             return data, 0
         
-
+    # Deteccao de erros por CRC
     def crc_reverse(quadro):
         # Polinômio gerador CRC32-IEEE
         gx = 0x04C11DB7
@@ -276,6 +304,7 @@ class CamadaEnlace:
 
         return original_quadro, msg
 
+    # Deteccao de erros por Hamming
     def hamming_receptor(data):
 
         tamanho = len(data)
@@ -320,4 +349,4 @@ class CamadaEnlace:
         return data_original, erro
     
 teste = Aplicacao()
-teste.socketRecive()
+teste.socketReceive()
