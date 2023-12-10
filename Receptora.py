@@ -66,18 +66,19 @@ class Aplicacao:
         decoder.extend(listBytesDencoded[0])
         
         listBytesErro = []
+        listErro = []
         if error_detection == 'CRC':
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.crc_reverse(quadro)
-                listBytesErro.append(bitsErro)
+                listBytesErro.append(bitsErro), listErro.append(erro)
         elif error_detection == 'Bits de Paridade':
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.BitParidadeReverse(quadro)
-                listBytesErro.append(bitsErro)
+                listBytesErro.append(bitsErro), listErro.append(erro)
         else:
             for quadro in listBytesDencoded:
                 bitsErro, erro = CamadaEnlace.hamming_receptor(quadro)
-                listBytesErro.append(bitsErro)
+                listBytesErro.append(bitsErro), listErro.append(erro)
 
         print("lista de erros: ",listBytesErro)
         listFramig = []
@@ -88,10 +89,13 @@ class Aplicacao:
         if framing == 'Inserção de Byte':
             bits = CamadaEnlace.reverse_byte(listFramig)
         else:
-            bits = CamadaEnlace.frame_decapsulation(listFramig)
+            bits, erro = CamadaEnlace.frame_decapsulation(listFramig)
+            if erro == 1:
+                listErro = [1]
 
+        
         text = self.bitToStr(bits)
-        if erro == 1:
+        if 0 != listErro[0]:
             msg = 'Apresentou erro!'
         else:
             msg = 'Não apresentou erro'
@@ -121,7 +125,7 @@ class Aplicacao:
                 dados_recebidos = conn.recv(2048)
                 if not dados_recebidos:
                     print('Fechando conexão')
-                    conn.close()
+                    conn.close() 
                     break
                 lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
                 print("Lista recebida:", lista_recebida)
@@ -210,6 +214,7 @@ class CamadaEnlace:
 
     def frame_decapsulation(frames):
         binary_data = ''
+        erro = 0
         for frame in frames:
             # Verifica se o frame está no formato correto
             if not frame[:8].isdigit():
@@ -223,11 +228,11 @@ class CamadaEnlace:
 
             # Verifica se o comprimento do frame é consistente com o comprimento real dos dados
             if length != len(frame_data):
-                raise ValueError("Comprimento do quadro inconsistente com os dados reais")
+                erro = 1
 
             binary_data += frame_data
 
-        return binary_data
+        return binary_data, erro
 
     def BitParidadeReverse(data):
         EDC = 0
@@ -236,6 +241,7 @@ class CamadaEnlace:
             EDC ^= bit 
 
         data.pop()
+        print("EDC: ", EDC)
         if(EDC):
             return data, 1
         else:

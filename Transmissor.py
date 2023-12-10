@@ -2,6 +2,7 @@ import numpy as np
 import socket
 import json
 import pickle
+import random
 
 class Aplicacao:
     def strTobit(self, text):
@@ -16,6 +17,28 @@ class Aplicacao:
         strbits = ''.join(str(bit) for bit in data)
         return strbits
     
+    def AddError(self, data, error_detection,encoding):
+        print('data $$$$$$$$$$$: ',data[0])
+        if error_detection == 'Hamming':
+            erroPosicao = random.randint(0, len(data[0]) - 1)
+            if encoding == 'NRZ Polar' or encoding == 'Bipolar':
+                data[0][erroPosicao] = -1 * data[0][erroPosicao]
+            else:
+                data[0][erroPosicao] = 1 - data[0][erroPosicao]
+        else:
+            erro = random.randint(1, 20)
+            #erro = 21
+            for _ in range(erro):
+                erroPosicao = random.randint(0, len(data[0]) - 1)
+                if encoding == 'NRZ Polar' or encoding == 'Bipolar':
+                    if data[0][erroPosicao] == 0:
+                        data[0][erroPosicao] = 1
+                    else:
+                        data[0][erroPosicao] = -1 * data[0][erroPosicao]
+                else:
+                   data[0][erroPosicao] = 1 - data[0][erroPosicao]
+        print('data $$$$$$$$$$$: ',data[0])
+        return data
 
     def socketsend(self, data, encoding, framing, error_detection):
         HOST = 'localhost'
@@ -35,7 +58,7 @@ class Aplicacao:
             cliente.close()
 
     
-    def aplicar(self, text_input, encoding, framing, error_detection, modulation_str):
+    def aplicar(self, text_input, encoding, framing, error_detection, modulation_str, erro_selected):
         bin_str = self.strTobit(text_input)
 
         if framing == 'Inserção de Byte':
@@ -97,6 +120,9 @@ class Aplicacao:
             for quadro in listBytesEncoded:
                 modulo = CamadaFisica.fsk(A_amplitude,f_frequencia,f2_frequencia,quadro)
                 ModulacaoFSK.append(modulo)
+
+        if erro_selected:
+            listBytesEncoded = self.AddError(listBytesEncoded,error_detection,encoding)
 
         self.socketsend(listBytesEncoded, encoding, framing, error_detection)
         

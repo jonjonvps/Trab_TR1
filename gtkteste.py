@@ -61,6 +61,9 @@ class MyWindow(Gtk.Window):
         self.fsk_checkbox = Gtk.CheckButton("Modulação FSK")
         self.box.pack_start(self.fsk_checkbox, True, True, 0)
 
+        self.erro_checkbox = Gtk.CheckButton("Adicionar erro")
+        self.box.pack_start(self.erro_checkbox, True, True, 0)
+
         self.execute_button = Gtk.Button(label="Executar")
         self.execute_button.connect("clicked", self.on_execute_button_clicked)
         self.box.pack_start(self.execute_button, True, True, 0)
@@ -77,9 +80,10 @@ class MyWindow(Gtk.Window):
         selected_error_detection = self.get_selected_option(self.box, "Detecção de Erro:")
         ask_selected = self.ask_checkbox.get_active()
         fsk_selected = self.fsk_checkbox.get_active()
+        erro_selected = self.erro_checkbox.get_active()
 
         # Executar operações com base nas opções selecionadas
-        result = self.perform_operations(text_input, selected_encoding, selected_framing, selected_error_detection, ask_selected, fsk_selected)
+        result = self.perform_operations(text_input, selected_encoding, selected_framing, selected_error_detection, ask_selected, fsk_selected, erro_selected)
 
         # Exibir o resultado
         self.result_label.set_text(result)
@@ -140,27 +144,29 @@ class MyWindow(Gtk.Window):
         plt.yaxis = np.array(Encoded)
         plt.step(plt.xaxis, plt.yaxis)
         plt.title(f'Sinal {encoding}')
+        plt.xlabel('Tempo')
+        plt.ylabel('Amplitude, V')
         plt.show()
       
         if modulacaoASK:
             plt.plot(modulacaoASK[0], label='Sinal de ASK')
             plt.title('Sinal ASK')
 
-            plt.xlabel('Amostras')
-            plt.ylabel('Amplitude')
+            plt.xlabel('Tempo')
+            plt.ylabel('Amplitude, V')
             plt.tight_layout()  # Ajusta automaticamente o layout para evitar sobreposição
             plt.show()
         if modulacaoFSK:
             plt.plot(modulacaoFSK[0], label='Sinal de FSK')
             plt.title('Sinal FSK')
 
-            plt.xlabel('Amostras')
-            plt.ylabel('Amplitude')
+            plt.xlabel('Tempo')
+            plt.ylabel('Amplitude, V')
             plt.tight_layout()  # Ajusta automaticamente o layout para evitar sobreposição
             plt.show()
 
 
-    def perform_operations(self, text_input, encoding, framing, error_detection, ask_selected, fsk_selected):
+    def perform_operations(self, text_input, encoding, framing, error_detection, ask_selected, fsk_selected, erro_selected):
         # Implementar a lógica aqui usando as opções fornecidas e as classes
         # Chamar as funções apropriadas das classes CamadaFisica e CamadaEnlace
         modulation_result = []
@@ -168,15 +174,16 @@ class MyWindow(Gtk.Window):
             modulation_result.append("Modulação ASK")
         if fsk_selected:
             modulation_result.append("Modulação FSK")
+            
 
 
         trasnmissor = Transmissor.Aplicacao()
-        bin_str, quadro, BytesErro, BytesEncoded, modulacaoASK, modulacaoFSK = trasnmissor.aplicar(text_input, encoding, framing, error_detection, modulation_result)
+        bin_str, quadro, BytesErro, BytesEncoded, modulacaoASK, modulacaoFSK = trasnmissor.aplicar(text_input, encoding, framing, error_detection, modulation_result, erro_selected)
         result = f"Texto: {bin_str}\nEnquadramento: {quadro}\nDetecção de Erro: {BytesErro}\nCodificação: {BytesEncoded}"
     
         msg, listReceptora = self.socketRecived()
 
-        self.plotgrafics(BytesEncoded, listReceptora[2], modulacaoASK, modulacaoFSK,encoding)
+        self.plotgrafics(BytesEncoded, modulacaoASK, modulacaoFSK,encoding)
 
         return result + msg
 
