@@ -1,3 +1,13 @@
+# Universidade de Brasilia
+# Departamento de Ciencia da Computacao
+# Disciplina de Teleinformatica e Redes 1
+# Professor Marcelo Antonio Marotta
+# Trabalho final da disciplina
+# Alunos :  Andre Cassio Barros de Souza    160111943
+#           Andrey Galvao Mendes            180097911
+#           Davi Oliveira Fuzo              202024446
+#           Joao Victor Pinheiro de Souza   180103407
+
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
@@ -10,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import Transmissor
+#import Receptora
 
 class MyWindow(Gtk.Window):
     def __init__(self):
@@ -18,6 +29,7 @@ class MyWindow(Gtk.Window):
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(self.box)
 
+        # Input field para a mensagem a ser transmitida
         self.text_entry = Gtk.Entry()
         self.box.pack_start(self.text_entry, True, True, 0)
 
@@ -65,6 +77,7 @@ class MyWindow(Gtk.Window):
         self.execute_button.connect("clicked", self.on_execute_button_clicked)
         self.box.pack_start(self.execute_button, True, True, 0)
 
+        # Adicionando campos de output da transmissao
         self.result_label = Gtk.Label()
         self.box.pack_start(self.result_label, True, True, 0)
 
@@ -81,8 +94,9 @@ class MyWindow(Gtk.Window):
         # Executar operações com base nas opções selecionadas
         result = self.perform_operations(text_input, selected_encoding, selected_framing, selected_error_detection, ask_selected, fsk_selected)
 
-        # Exibir o resultado
-        self.result_label.set_text(result)
+        # Exibir o resultado <= resultado agora eh mostrado no perform_operations
+        # self.show_transmission_results(result)
+        #self.result_label.set_text(result)
 
     def get_selected_option(self, container, group_label):
         # Encontrar o grupo de botões de rádio com o título fornecido
@@ -104,7 +118,7 @@ class MyWindow(Gtk.Window):
         msg = f"\n\nReceptora\n\nDecodificação: {data[2]}\nDetecção de erro: {data[1]} {data[3]}\nEnquadramento: {data[4]}\nTexto em Binario: {data[5]}\nMensagem: {data[0]}"
         return msg
     
-    def socketRecived(self):
+    def socketReceived(self):
         HOST = 'localhost'
         PORT = 20000
 
@@ -135,7 +149,7 @@ class MyWindow(Gtk.Window):
 
         return msg, lista_recebida
 
-    def plotgrafics(self,Encoded,modulacaoASK, modulacaoFSK, encoding):
+    def plot_graphics(self, Encoded, modulacaoASK, modulacaoFSK, encoding):
         plt.xaxis = np.arange(0, len(Encoded))
         plt.yaxis = np.array(Encoded)
         plt.step(plt.xaxis, plt.yaxis)
@@ -174,11 +188,16 @@ class MyWindow(Gtk.Window):
         bin_str, quadro, BytesErro, BytesEncoded, modulacaoASK, modulacaoFSK = trasnmissor.aplicar(text_input, encoding, framing, error_detection, modulation_result)
         result = f"Texto: {bin_str}\nEnquadramento: {quadro}\nDetecção de Erro: {BytesErro}\nCodificação: {BytesEncoded}"
     
-        msg, listReceptora = self.socketRecived()
+        msg, listReceptora = self.socketReceived()
 
-        self.plotgrafics(BytesEncoded, listReceptora[2], modulacaoASK, modulacaoFSK,encoding)
+        self.show_transmission_results(result, BytesEncoded, modulacaoASK, modulacaoFSK, encoding)
 
         return result + msg
+    
+    def show_transmission_results(self, result_text, BytesEncoded, modulacaoASK, modulacaoFSK, encoding):
+        self.result_label.set_text(result_text)
+        self.plot_graphics(BytesEncoded, modulacaoASK, modulacaoFSK, encoding)
+
 
 win = MyWindow()
 win.connect("destroy", Gtk.main_quit)
