@@ -2,8 +2,31 @@ import socket
 import json
 
 class Aplicacao:
-    pass
-        
+    def socketRecive(self):
+        HOST = 'localhost'
+        PORT = 50000
+
+        servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        servidor.bind((HOST, PORT))
+
+        servidor.listen()
+
+        print("Aguardando conexão de um cliente")
+        conn, ender = servidor.accept()
+
+        print('Conectando em:', ender)
+
+        while True:
+            dados_recebidos = conn.recv(2048)
+            if not dados_recebidos:
+                print('Fechando a conexão')
+                conn.close()
+                break
+            lista_recebida = json.loads(dados_recebidos.decode('utf-8'))
+            print("Lista recebida:", lista_recebida)
+            conn.sendall(str.encode('recebido'))
+
 
 
 class CamadaFisica:
@@ -180,3 +203,6 @@ class CamadaEnlace:
                 data_original.append(data[i])
 
         return data_original
+    
+teste = Aplicacao()
+teste.socketRecive()

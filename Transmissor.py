@@ -17,20 +17,18 @@ class Aplicacao:
     
 
     def socketsend(self, data):
-        servidor = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        endereco_servidor = ('localhost', 12345)  # Escolha um número de porta adequado
-        servidor.bind(endereco_servidor)
-        servidor.listen()
+        HOST = 'localhost'
+        PORT = 50000
 
-        print("Aguardando conexão...")
-        conexao, endereco_cliente = servidor.accept()
-
-        # Enviar dados para o Receptor
+        cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cliente.connect((HOST,PORT))
         dados_a_enviar = json.dumps(data)
-        conexao.sendall(dados_a_enviar.encode('utf-8'))
+        cliente.sendall(dados_a_enviar.encode('utf-8'))
 
-        # Encerrar conexão
-        conexao.close()
+        menssage = cliente.recv(2048)
+
+        print('Mensagem Socket: ', menssage.decode())
+
 
     
     def aplicar(self, text_input, encoding, framing, error_detection, modulation_str):
@@ -92,7 +90,7 @@ class Aplicacao:
                 modulo = CamadaFisica.fsk(A_amplitude,f_frequencia,f2_frequencia,quadro)
                 listModulacao.append(modulo)
 
-        
+        self.socketsend(listBytesEncoded)
         
         return bin_str, quadros[0], listBytesErro[0], listBytesEncoded[0]
         
